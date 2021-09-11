@@ -1,5 +1,3 @@
-// Licensed under the MIT License
-
 /*
 Copyright 2021 kokko-san
 
@@ -38,12 +36,16 @@ class MatchNotFoundError extends Error {
  * 内部的には、伝助から発行されるCSVを取得している。
  * 
  * @param {string} densukeCd 伝助から発行される、出欠調査を一意に定めるコード。
+ * @param {boolean} [lastUpdated=false] 取得する情報に入力内容の最終更新日時を含めるか。
+ * @param {boolean} [comment=true] 入力者のコメントを含めるか。
  * @return {Array.<Array.<string>> 出欠調査の表。下に最終更新日時やコメントが付与される。
  */
-function getDensukeValues(densukeCd) {
-  const hnObject = _getHnObject(densukeCd);
-  const csvUrl = _getCsvUrl(densukeCd, hnObject);
-  const csvContent = _getCsvContent(csvUrl, hnObject.cookie);
+function getValues(densukeCd, lastUpdated=false, comment=true) {
+  const hnObject = getHnObject_(densukeCd);
+  Utilities.sleep(500);
+  const csvUrl = getCsvUrl_(densukeCd, hnObject, lastUpdated, comment);
+  Utilities.sleep(500);
+  const csvContent = getCsvContent_(csvUrl, hnObject.cookie);
 
   return Utilities.parseCsv(csvContent);
 }
@@ -56,7 +58,7 @@ function getDensukeValues(densukeCd) {
  * @param {string} densukeCd 伝助から発行される、出欠調査を一意に定めるコード。
  * @return {Object.<string, string>} hnとdeviceid(Cookie)に関する情報をまとめたObject。
  */
-function _getHnObject(densukeCd) {
+function getHnObject_(densukeCd) {
   const url = `https://densuke.biz/csvsetting?cd=${densukeCd}`;
   const res = UrlFetchApp.fetch(url);
 
@@ -97,17 +99,19 @@ function _getHnObject(densukeCd) {
  * 
  * @param {string} densukeCd 伝助から発行される、出欠調査を一意に定めるコード。
  * @param {Object.<string, string>} hnObject hnとdeviceid(Cookie)に関する情報をまとめたObject。
+ * @param {boolean} lastUpdated 取得する情報に入力内容の最終更新日時を含めるか。
+ * @param {boolean} comment 入力者のコメントを含めるか。
  * @return {string} CSVをダウンロードできるURL。
  */
-function _getCsvUrl(densukeCd, hnObject) {
+function getCsvUrl_(densukeCd, hnObject, lastUpdated, comment) {
   const url = `https://densuke.biz/csvout?cd=${densukeCd}`;
   const options = {
     method: 'post',
     payload: {
       hn: hnObject.hn,
-      charcode: 'utf8',  // 文字コードはUTF-8
-      lastupd: 0,        // 最終更新日時をつけない
-      comm: 1            // コメントをつける
+      charcode: 'utf8',              // 文字コードはUTF-8
+      lastupd: lastUpdated ? 1 : 0,  // 最終更新日時をつけない
+      comm: comment ? 1 : 0          // コメントをつける
     },
     headers: {
       Cookie: hnObject.cookie
@@ -141,7 +145,7 @@ function _getCsvUrl(densukeCd, hnObject) {
  * @param {string} cookie deviceidに関するCookie情報。
  * @return {string} CSVの中身の文字列。
  */
-function _getCsvContent(csvUrl, cookie) {
+function getCsvContent_(csvUrl, cookie) {
   const url = `https://densuke.biz/csv/${csvUrl}`;
   const options = {
     headers: {
