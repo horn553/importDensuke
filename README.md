@@ -28,7 +28,7 @@ densukeCds.forEach((densukeCd, index) => {
     Utilities.sleep(1000);
   }
   
-  const values = importDensuke.getDensukeValues(densukeCd);
+  const values = importDensuke.getValues(densukeCd);
   /*  `values` is like
   [
     ['', '太郎', '花子'],
